@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Create Session — InterviewAI Pro{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-12">
+  <div class="bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-slate-200">
+    <h2 class="text-3xl font-bold text-slate-900 mb-2">Create Interview Session</h2>
+    <p class="text-slate-600 mb-8">Fill in the details below to generate a tailored AI interview.</p>
+
+    <!-- Error banner -->
+    <div id="errorBanner" class="hidden mb-8 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-700">
+      <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <p id="errorText"></p>
+    </div>
+
+    <!-- Success screen (hidden initially) -->
+    <div id="successView" class="hidden text-center py-8">
+      <div class="bg-green-50 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8">
+        <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <h2 class="text-3xl font-bold text-slate-900 mb-4">Session Created!</h2>
+      <p class="text-slate-600 mb-8">Your mock interview is ready. Share this OTP with the candidate or use it to start now.</p>
+      <div class="bg-indigo-100 p-8 rounded-3xl mb-8">
+        <p id="otpDisplay" class="text-4xl font-mono font-bold text-indigo-800 mb-2"></p>
+        <p class="text-sm text-indigo-700">6-digit OTP</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-4">
+        <a href="/start" class="flex-1 px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors text-center">
+          Go to Start Page
+        </a>
+        <a href="/" class="flex-1 px-8 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-indigo-50 transition-colors text-center">
+          Back Home
+        </a>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <form id="registerForm" class="space-y-6">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">Candidate Email</label>
+          <input id="candidateEmail" type="email" required
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            placeholder="candidate@example.com" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">Company Name</label>
+          <input id="companyName" required
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            placeholder="e.g. Acme Corp" />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Job Title</label>
+        <input id="jobTitle" required
+          class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+          placeholder="e.g. Senior Software Engineer" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Company Website (Optional)</label>
+        <input id="companyWebsite" type="url"
+          class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+          placeholder="https://company.com" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Job Description</label>
+        <textarea id="jobDescription" required rows="8"
+          class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
+          placeholder="Paste the full job description here..."></textarea>
+      </div>
+
+      <button id="submitBtn" type="submit"
+        class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all
+               disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg shadow-indigo-100">
+        <span id="btnLabel">Generate Mock Interview</span>
+        <svg id="spinner" class="hidden w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+        </svg>
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const form = document.getElementById('registerForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const spinner = document.getElementById('spinner');
+  const btnLabel = document.getElementById('btnLabel');
+  const errorBanner = document.getElementById('errorBanner');
+  const errorText = document.getElementById('errorText');
+  const successView = document.getElementById('successView');
+
+  function showError(msg) {
+    errorText.textContent = msg;
+    errorBanner.classList.remove('hidden');
+  }
+
+  function setLoading(loading) {
+    submitBtn.disabled = loading;
+    spinner.classList.toggle('hidden', !loading);
+    btnLabel.textContent = loading ? 'Analyzing Job & Generating Questions...' : 'Generate Mock Interview';
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorBanner.classList.add('hidden');
+    setLoading(true);
+
+    const payload = {
+      candidateEmail: document.getElementById('candidateEmail').value.trim(),
+      companyName: document.getElementById('companyName').value.trim(),
+      jobTitle: document.getElementById('jobTitle').value.trim(),
+      companyWebsite: document.getElementById('companyWebsite').value.trim(),
+      jobDescription: document.getElementById('jobDescription').value.trim(),
+    };
+
+    try {
+      const res = await fetch('/api/create-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.error || 'Failed to create session. Please try again.');
+        return;
+      }
+
+      // Show success
+      document.getElementById('otpDisplay').textContent = data.otp;
+      form.classList.add('hidden');
+      successView.classList.remove('hidden');
+
+    } catch (err) {
+      showError('Network error. Please check your connection and try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  });
+</script>
+{% endblock %}

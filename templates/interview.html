@@ -1,0 +1,517 @@
+{% extends "base.html" %}
+{% block title %}Interview — InterviewAI Pro{% endblock %}
+
+{% block content %}
+<div id="app" class="w-full">
+
+  <!-- Session Not Found -->
+  <div id="notFound" class="hidden max-w-2xl mx-auto px-4 py-20 text-center">
+    <div class="bg-red-50 p-8 rounded-3xl border border-red-200">
+      <svg class="w-12 h-12 text-red-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+      <h2 class="text-xl font-bold text-red-900 mb-2">Session Not Found</h2>
+      <p class="text-red-700 mb-6">Please go back and verify your OTP.</p>
+      <a href="/start" class="bg-red-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-700 inline-block">Back to Start</a>
+    </div>
+  </div>
+
+  <!-- Pre-start screen -->
+  <div id="preStart" class="hidden max-w-2xl mx-auto px-4 py-16 text-center">
+    <div class="bg-white p-10 rounded-3xl shadow-xl border border-indigo-100">
+      <div class="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+        <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <h2 class="text-2xl font-bold text-slate-900 mb-2">Ready to Begin?</h2>
+      <p class="text-slate-500 mb-1">Mock interview for <strong id="companyNameLabel"></strong></p>
+      <p class="text-slate-400 text-sm mb-6">Camera, microphone and live speech transcription activate when you click below.</p>
+      <div id="speechWarning" class="hidden mb-5 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm text-left">
+        <strong>Note:</strong> Live transcription isn't supported in this browser. Use Chrome or Edge for best results.
+      </div>
+      <div id="permError" class="hidden mb-5 p-3 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm text-left">
+        <p id="permErrorText"></p>
+      </div>
+      <button id="startBtn"
+        class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-lg flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Start Mock Interview
+      </button>
+    </div>
+  </div>
+
+  <!-- Processing screen -->
+  <div id="processingScreen" class="hidden max-w-xl mx-auto px-4 py-20 text-center">
+    <div class="bg-white p-10 rounded-3xl shadow-xl border border-indigo-100">
+      <svg class="w-14 h-14 text-indigo-600 animate-spin mx-auto mb-6" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+      </svg>
+      <h2 id="processingTitle" class="text-2xl font-bold text-slate-900 mb-3">Uploading Interview...</h2>
+      <p id="processingMsg" class="text-slate-500 text-sm mb-6">This takes about 15–30 seconds. Please don't close this tab.</p>
+      <div class="flex justify-center gap-6 text-xs">
+        <div id="step1" class="flex items-center gap-1.5 text-slate-500">
+          <div class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></div> Uploading video
+        </div>
+        <div id="step2" class="flex items-center gap-1.5 text-slate-400">
+          <div class="w-2 h-2 rounded-full bg-slate-300"></div> AI analysis
+        </div>
+        <div id="step3" class="flex items-center gap-1.5 text-slate-400">
+          <div class="w-2 h-2 rounded-full bg-slate-300"></div> Saving report
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Active interview layout ────────────────────────────────────────── -->
+  <!-- Fixed to viewport height so nothing scrolls during interview -->
+  <div id="interviewLayout" class="hidden" style="height:calc(100vh - 64px); overflow:hidden;">
+    <div class="h-full flex flex-col lg:flex-row">
+
+      <!-- ── Sidebar: progress list + timer ── -->
+      <div class="hidden lg:flex lg:w-56 xl:w-64 flex-col bg-white border-r border-slate-200 flex-shrink-0">
+        <div class="p-4 border-b border-slate-100">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Time Remaining</p>
+          <div id="timerDisplay" class="text-3xl font-mono font-bold text-slate-900">45:00</div>
+        </div>
+        <div id="questionList" class="p-3 space-y-1.5 flex-1 overflow-y-auto"></div>
+      </div>
+
+      <!-- ── Main column ── -->
+      <div class="flex-1 flex flex-col overflow-hidden bg-slate-100">
+
+        <!-- Mobile top bar -->
+        <div class="lg:hidden flex items-center justify-between px-4 py-2 bg-white border-b border-slate-200 flex-shrink-0">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Time:</span>
+          <span id="timerDisplayMobile" class="text-base font-mono font-bold text-slate-900">45:00</span>
+          <div class="flex gap-2 items-center">
+            <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+            <span class="text-xs font-bold text-red-600 uppercase">REC</span>
+          </div>
+        </div>
+
+        <!-- Video — large 16:9, fills the top portion -->
+        <div class="flex-shrink-0 relative bg-slate-900" style="height:58%;">
+          <video id="videoEl" autoplay muted playsinline
+            class="w-full h-full object-cover opacity-0 transition-opacity duration-300"
+            style="transform:scaleX(-1)"></video>
+
+          <!-- No-camera overlay -->
+          <div id="noCameraOverlay" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-3 bg-slate-900 z-10">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14m-5 0H5a2 2 0 01-2-2V8a2 2 0 012-2h2.586a1 1 0 01.707.293l.707.707"/>
+            </svg>
+            <p id="noCameraMsg" class="text-base text-center px-6">Camera access required</p>
+            <button id="enableCameraBtn" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-bold text-sm">Enable Camera</button>
+          </div>
+
+          <!-- Status bar overlaid bottom-left -->
+          <div id="activeOverlays" class="hidden absolute bottom-4 left-4 flex gap-2 z-20">
+            <div class="bg-slate-900/75 backdrop-blur px-3 py-1.5 rounded-lg flex items-center gap-2 border border-slate-700">
+              <svg class="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+              </svg>
+              <span id="micLabel" class="text-xs text-slate-200 font-medium">Listening</span>
+            </div>
+            <div class="bg-red-600/80 backdrop-blur px-3 py-1.5 rounded-lg flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+              <span class="text-xs font-bold text-white uppercase tracking-widest">REC</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom strip: live transcript left, question card right -->
+        <div class="flex-1 flex flex-col md:flex-row overflow-hidden gap-0">
+
+          <!-- Live transcript panel -->
+          <div class="md:w-64 lg:w-72 flex-shrink-0 bg-slate-800 flex flex-col overflow-hidden border-r border-slate-700">
+            <div class="px-4 py-2 border-b border-slate-700">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse"></span>
+                Live Transcript
+              </p>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4">
+              <p id="liveTranscript" class="text-slate-300 text-sm leading-relaxed">
+                <span class="text-slate-500 italic">Your words will appear here as you speak...</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Question card -->
+          <div class="flex-1 flex flex-col bg-white overflow-hidden">
+            <div class="flex-1 px-6 py-5 overflow-y-auto">
+              <span id="questionMeta"
+                class="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold uppercase tracking-wider mb-3"></span>
+              <h3 id="questionText" class="text-xl lg:text-2xl font-bold text-slate-900 leading-snug"></h3>
+            </div>
+            <!-- Next button pinned to the bottom of the card -->
+            <div class="border-t border-slate-100 px-6 py-4 flex justify-end flex-shrink-0">
+              <button id="nextBtn"
+                class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold text-base hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md shadow-indigo-100">
+                Next Question
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+        </div><!-- /bottom strip -->
+      </div><!-- /main column -->
+    </div>
+  </div><!-- /interviewLayout -->
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const session = JSON.parse(sessionStorage.getItem('interviewSession') || 'null');
+  let currentIndex = 0;
+  let timeLeft = 45 * 60;
+  let timerInterval = null;
+  let stream = null;
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let transcriptParts = [];
+  let currentAnswerText = '';
+  let currentInterimText = '';
+  let recognition = null;
+  const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+  const $ = id => document.getElementById(id);
+
+  // ── Always stop camera/mic when leaving the page ─────────────────────────
+  function stopAllTracks() {
+    if (stream) {
+      stream.getTracks().forEach(t => { t.stop(); });
+      stream = null;
+    }
+    stopSpeechRecognition();
+    if (timerInterval) clearInterval(timerInterval);
+  }
+  window.addEventListener('beforeunload', stopAllTracks);
+  // Also stop when tab becomes hidden (user switches tabs)
+  document.addEventListener('visibilitychange', () => {
+    // Only stop if we're in the middle of an interview that has ended
+    // (i.e. processingScreen is visible — camera should already be off)
+    // Don't stop mid-interview when candidate just switches tab briefly.
+  });
+
+  if (!session) {
+    $('notFound').classList.remove('hidden');
+  } else {
+    $('companyNameLabel').textContent = session.companyName;
+    if (!speechSupported) $('speechWarning').classList.remove('hidden');
+    $('preStart').classList.remove('hidden');
+  }
+
+  // ── Speech recognition ────────────────────────────────────────────────
+  function startSpeechRecognition() {
+    if (!speechSupported) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition._manualStop = false;
+
+    recognition.onresult = (event) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) currentAnswerText += t + ' ';
+        else interim += t;
+      }
+      currentInterimText = interim;
+      const full = currentAnswerText + currentInterimText;
+      const el = $('liveTranscript');
+      if (full.trim()) {
+        el.textContent = full.trim();
+      } else {
+        el.innerHTML = '<span class="text-slate-500 italic">Your words will appear here as you speak...</span>';
+      }
+    };
+
+    recognition.onerror = e => {
+      if (e.error === 'no-speech' || e.error === 'aborted') return;
+      console.warn('Speech error:', e.error);
+      $('micLabel').textContent = 'Mic error';
+    };
+
+    recognition.onend = () => {
+      if (!recognition._manualStop) {
+        try { recognition.start(); } catch(e) {}
+      }
+    };
+
+    try { recognition.start(); $('micLabel').textContent = 'Listening'; }
+    catch(e) { console.warn('Speech start failed:', e); }
+  }
+
+  function stopSpeechRecognition() {
+    if (recognition) { recognition._manualStop = true; recognition.stop(); }
+  }
+
+  function saveCurrentAnswer() {
+    if (currentInterimText.trim()) currentAnswerText += currentInterimText + ' ';
+    const q = session.questions[currentIndex];
+    transcriptParts.push({
+      question: `[Q${currentIndex + 1} — ${q.category.toUpperCase()}] ${q.text}`,
+      answer: currentAnswerText.trim() || '(No spoken answer detected)'
+    });
+    currentAnswerText = '';
+    currentInterimText = '';
+    $('liveTranscript').innerHTML = '<span class="text-slate-500 italic">Your words will appear here as you speak...</span>';
+  }
+
+  // ── Camera ────────────────────────────────────────────────────────────
+  async function startCamera() {
+    try {
+      $('permError').classList.add('hidden');
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      $('videoEl').srcObject = stream;
+      $('videoEl').classList.remove('opacity-0');
+      $('noCameraOverlay').classList.add('hidden');
+      $('activeOverlays').classList.remove('hidden');
+      return true;
+    } catch (err) {
+      const msg = (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')
+        ? 'Camera access denied. Allow permissions in your browser settings.'
+        : 'Could not access camera. Please check your device.';
+      $('permErrorText').textContent = msg;
+      $('permError').classList.remove('hidden');
+      $('noCameraMsg').textContent = msg;
+      return false;
+    }
+  }
+
+  // ── Start interview ───────────────────────────────────────────────────
+  $('startBtn').addEventListener('click', async () => {
+    const ok = await startCamera();
+    if (!ok || !stream) return;
+
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+      ? 'video/webm;codecs=vp8,opus'
+      : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : '';
+
+    try {
+      mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      mediaRecorder.ondataavailable = e => { if (e.data?.size > 0) recordedChunks.push(e.data); };
+      mediaRecorder.start(1000);
+    } catch (e) { console.error('MediaRecorder failed:', e); }
+
+    startSpeechRecognition();
+    $('preStart').classList.add('hidden');
+    const layout = $('interviewLayout');
+    layout.style.display = 'block';
+    layout.classList.remove('hidden');
+    renderQuestion();
+    startTimer();
+  });
+
+  $('enableCameraBtn').addEventListener('click', startCamera);
+
+  // ── Timer ─────────────────────────────────────────────────────────────
+  function startTimer() {
+    timerInterval = setInterval(() => {
+      if (timeLeft > 0) timeLeft--;
+      const m = Math.floor(timeLeft / 60);
+      const s = String(timeLeft % 60).padStart(2, '0');
+      const txt = `${m}:${s}`;
+      $('timerDisplay').textContent = txt;
+      $('timerDisplayMobile').textContent = txt;
+    }, 1000);
+  }
+
+  // ── Render question ───────────────────────────────────────────────────
+  function renderQuestion() {
+    const q = session.questions[currentIndex];
+    const total = session.questions.length;
+    $('questionMeta').textContent = `Question ${currentIndex + 1} of ${total} · ${q.category}`;
+    $('questionText').textContent = q.text;
+    const isLast = currentIndex === total - 1;
+    $('nextBtn').innerHTML = isLast
+      ? `End Interview <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`
+      : `Next Question <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>`;
+
+    const list = $('questionList');
+    list.innerHTML = '';
+    session.questions.forEach((q, idx) => {
+      const div = document.createElement('div');
+      div.className = `flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all ${
+        idx === currentIndex ? 'bg-indigo-50 text-indigo-700 font-semibold' :
+        idx < currentIndex ? 'text-green-600' : 'text-slate-400'}`;
+      const icon = idx < currentIndex
+        ? `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
+        : `<div class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-[9px] font-bold ${
+            idx === currentIndex ? 'border-indigo-500' : 'border-slate-300'}">${idx + 1}</div>`;
+      div.innerHTML = `${icon}<span class="capitalize truncate">${q.category}</span>`;
+      list.appendChild(div);
+    });
+  }
+
+  // ── Next / End ────────────────────────────────────────────────────────
+  $('nextBtn').addEventListener('click', () => {
+    saveCurrentAnswer();
+    if (currentIndex < session.questions.length - 1) {
+      currentIndex++;
+      renderQuestion();
+    } else {
+      handleFinish();
+    }
+  });
+
+  // ── Step indicator ────────────────────────────────────────────────────
+  function setStep(n) {
+    ['step1','step2','step3'].forEach((id, i) => {
+      const el = $(id), dot = el.querySelector('div');
+      if (i < n) {
+        dot.className = 'w-2 h-2 rounded-full bg-green-500';
+        el.className = el.className.replace(/text-slate-\d+/, 'text-green-600');
+      } else if (i === n) {
+        dot.className = 'w-2 h-2 rounded-full bg-indigo-400 animate-pulse';
+        el.className = el.className.replace(/text-slate-\d+/, 'text-slate-500');
+      }
+    });
+  }
+
+  // ── Finish ────────────────────────────────────────────────────────────
+  async function handleFinish() {
+    clearInterval(timerInterval);
+    stopSpeechRecognition();
+    $('interviewLayout').style.display = 'none';
+    $('processingScreen').classList.remove('hidden');
+    // Stop all camera/mic tracks immediately — this releases the browser indicator
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    // Also clear the video element src so browser releases the device
+    const vid = document.getElementById('videoEl');
+    if (vid) { vid.srcObject = null; }
+
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      await new Promise(resolve => {
+        mediaRecorder.onstop = resolve;
+        mediaRecorder.requestData();
+        mediaRecorder.stop();
+      });
+    }
+
+    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+    const fullTranscript = transcriptParts.map(p =>
+      `${p.question}\nAnswer: ${p.answer}`
+    ).join('\n\n---\n\n');
+
+    console.log('Transcript:\n', fullTranscript);
+
+    // ── Step 1: Upload video directly to S3 via pre-signed URL ─────────────
+    setStep(0);
+    $('processingTitle').textContent = 'Uploading Recording...';
+    $('processingMsg').textContent = 'Uploading your video to secure storage.';
+    let videoUrl = null;
+
+    if (blob.size > 10000) {
+      try {
+        const urlRes = await fetch('/api/presigned-upload-url', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: session.candidateEmail, sessionId: session.sessionId }),
+        });
+        const urlData = await urlRes.json();
+
+        if (urlRes.status === 503 || urlData.skipped) {
+          console.warn('S3 not configured — video upload skipped');
+        } else if (urlRes.ok && urlData.uploadUrl) {
+          console.log('Uploading video to S3...', blob.size, 'bytes');
+          const s3Res = await fetch(urlData.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'video/webm' },
+            body: blob,
+          });
+          if (s3Res.ok) {
+            videoUrl = urlData.publicUrl;
+            console.log('✅ Video uploaded:', videoUrl);
+          } else {
+            // Log the S3 error response for debugging
+            const errText = await s3Res.text().catch(() => '');
+            console.warn('❌ S3 PUT failed:', s3Res.status, errText);
+            console.warn('Tip: Check your S3 bucket CORS policy. Visit /api/check-s3-cors for diagnosis.');
+          }
+        } else {
+          console.warn('Pre-signed URL error:', urlData.error || urlRes.status);
+        }
+      } catch (e) {
+        console.warn('Video upload error (continuing to analysis):', e);
+      }
+    } else {
+      console.log('Blob too small (' + blob.size + ' bytes) — skipping upload');
+    }
+
+    // ── Step 2 & 3: Send everything to /api/complete-session ─────────────
+    // This single call: runs AI, uploads transcript+report to S3, saves all to DynamoDB
+    setStep(1);
+    $('processingTitle').textContent = 'Analyzing Your Answers...';
+    $('processingMsg').textContent = 'AI is scoring your responses. Saving transcript and report. Please wait.';
+
+    let report = null;
+    let transcriptUrl = null;
+    let reportUrl = null;
+
+    try {
+      const completeRes = await fetch('/api/complete-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: session.candidateEmail,
+          sessionId: session.sessionId,
+          jobTitle: session.jobTitle,
+          companyName: session.companyName,
+          questions: session.questions,
+          transcript: fullTranscript,
+          videoUrl: videoUrl,   // pass video URL so DynamoDB gets everything in one write
+        }),
+      });
+      const completeData = await completeRes.json();
+
+      if (completeRes.ok && completeData.success) {
+        report = completeData.report;
+        transcriptUrl = completeData.transcriptUrl;
+        reportUrl = completeData.reportUrl;
+        console.log('✅ Session complete:', {
+          analysisOk: completeData.results?.analysisOk,
+          transcriptS3: completeData.results?.transcriptS3Ok,
+          reportS3: completeData.results?.reportS3Ok,
+          dbSave: completeData.results?.dbSaveOk,
+          errors: completeData.results?.errors,
+        });
+      } else {
+        console.warn('❌ complete-session failed:', completeData.error, completeData.results);
+      }
+    } catch (e) {
+      console.warn('complete-session network error:', e);
+    }
+
+    // ── Step 3: Redirect to report ────────────────────────────────────────
+    setStep(2);
+    $('processingTitle').textContent = 'All Done!';
+    session.transcript = fullTranscript;
+    session.report = report;
+    if (videoUrl) session.videoUrl = videoUrl;
+    if (transcriptUrl) session.transcriptUrl = transcriptUrl;
+    if (reportUrl) session.reportUrl = reportUrl;
+    sessionStorage.setItem('interviewSession', JSON.stringify(session));
+    await new Promise(r => setTimeout(r, 400));
+    window.location.href = `/report/${session.sessionId}`;
+  }
+</script>
+{% endblock %}
