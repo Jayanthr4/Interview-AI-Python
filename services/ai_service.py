@@ -1,15 +1,3 @@
-"""
-AI Service — Python equivalent of services/aiService.ts
-
-BUG FIXES vs original:
-1. The React version mixed up GEMINI_API_KEY / OPENAI_API_KEY naming in .env.example
-   but then called the OpenAI SDK. This version uses OPENAI_API_KEY consistently.
-2. The original category mapping was inconsistent — the prompt asked for
-   DEEP_TECHNICAL/SCENARIO but the TypeScript type expected 'technical'/'scenario'.
-   Fixed: we normalize categories from the AI response.
-3. Added a proper timeout via threading instead of Promise.race.
-"""
-
 import os
 import json
 import time
@@ -72,9 +60,9 @@ Job description:
 Task:
 1. Do NOT include any introduction questions like "Tell me about yourself". We already handle that separately.
 2. Generate exactly 9 interview questions for this role, divided across these categories:
-   - technical: 4 questions
+   - technical: 3 questions
    - scenario: 3 questions
-   - behavioral: 2 questions
+   - behavioral: 3 questions
 3. Each question must be 1–2 sentences, no extra explanation.
 4. Return ONLY valid JSON in this shape (no prose, no markdown):
 

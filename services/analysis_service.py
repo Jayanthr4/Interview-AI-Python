@@ -97,6 +97,7 @@ Return ONLY valid JSON — no prose, no markdown fences — in this exact schema
   ],
   "strengths": ["<only list real strengths visible in transcript, or state none if none>"],
   "improvements": ["<specific, actionable improvement>", ...],
+  "overallScore": <0-100 integer — weighted average: ability×25% + knowledge×25% + skillset×25% + attitude×25%>,
   "summary": "<3-5 sentences. If no real content was provided, state that clearly and explain scores reflect absence of answers.>"
 }
 """

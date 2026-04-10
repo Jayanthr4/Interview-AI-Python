@@ -1,27 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Performance Report — InterviewAI Pro{% endblock %}
 
-<!-- Print stylesheet: hide nav/footer/buttons, full width, clean white -->
-{% block scripts %}{% endblock %}
-
 {% block content %}
 <style>
   @media print {
-    header, footer, #printActions, #videoSection, .no-print { display: none !important; }
-    body { background: white !important; }
-    #reportContent { display: block !important; }
-    .bg-slate-50 { background: white !important; }
-    canvas { max-width: 220px !important; }
+    header, footer, .no-print { display: none !important; }
+    body, #reportContent { background: white !important; }
     .shadow-sm, .shadow-md { box-shadow: none !important; }
-    .rounded-3xl, .rounded-2xl, .rounded-xl { border-radius: 8px !important; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 
-<div class="max-w-6xl mx-auto px-4 py-12">
+<div class="max-w-6xl mx-auto px-4 py-10">
 
   <!-- Loading -->
-  <div id="loadingView" class="max-w-2xl mx-auto py-20 text-center no-print">
+  <div id="loadingView" class="max-w-xl mx-auto py-24 text-center no-print">
     <svg class="w-12 h-12 text-indigo-400 animate-spin mx-auto mb-4" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
@@ -29,67 +22,70 @@
     <p class="text-slate-500">Loading your report...</p>
   </div>
 
-  <!-- No report -->
-  <div id="noReport" class="hidden max-w-2xl mx-auto py-20 text-center no-print">
+  <!-- Not found -->
+  <div id="noReport" class="hidden max-w-xl mx-auto py-24 text-center no-print">
     <p class="text-slate-600 mb-4">Report not found or still processing.</p>
-    <a href="/" class="text-indigo-600 font-medium">Back Home</a>
+    <a href="/" class="text-indigo-600 font-semibold">Back Home</a>
   </div>
 
-  <!-- ── Full report ── -->
+  <!-- ── Full Report ── -->
   <div id="reportContent" class="hidden">
 
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+    <!-- Header row -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
       <div>
-        <a href="/" class="inline-flex items-center text-indigo-600 font-medium mb-3 no-print">
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="/admin" class="inline-flex items-center text-indigo-600 text-sm font-medium mb-2 no-print">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
           </svg>
           Back to Dashboard
         </a>
-        <h1 class="text-4xl font-bold text-slate-900">Performance Report</h1>
-        <p id="reportMeta" class="text-slate-500 mt-1"></p>
+        <h1 class="text-3xl font-bold text-slate-900">Performance Report</h1>
+        <p id="reportMeta" class="text-slate-500 mt-1 text-sm"></p>
       </div>
+      <button onclick="window.print()"
+        class="no-print flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-all shadow-sm flex-shrink-0">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Download / Print
+      </button>
+    </div>
 
-      <!-- Print / Download buttons -->
-      <div id="printActions" class="flex gap-3 no-print">
-        <button onclick="window.print()"
-          class="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 hover:bg-slate-50 transition-all shadow-sm text-sm">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-          </svg>
-          Print
-        </button>
-        <button id="downloadPdfBtn"
-          class="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-100 text-sm">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-          </svg>
-          Download PDF
-        </button>
+    <!-- Overall score banner -->
+    <div id="scoreBanner" class="hidden mb-6 bg-indigo-600 rounded-2xl p-6 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        <p class="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-1">Overall Interview Score</p>
+        <p id="overallScoreLabel" class="text-2xl font-bold"></p>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="text-center">
+          <div id="overallScoreCircle"
+            class="w-20 h-20 rounded-full border-4 border-white/30 flex items-center justify-center bg-white/10">
+            <span id="overallScoreNum" class="text-3xl font-extrabold"></span>
+          </div>
+          <p class="text-indigo-200 text-xs mt-1">out of 100</p>
+        </div>
       </div>
     </div>
 
     <!-- Video playback -->
-    <div id="videoSection" class="hidden mb-8 no-print">
-      <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-        <div class="flex items-center gap-3 mb-4">
-          <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div id="videoSection" class="hidden mb-6 no-print">
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+        <h2 class="text-base font-bold text-slate-900 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
           </svg>
-          <h2 class="text-lg font-bold text-slate-900">Interview Recording</h2>
-        </div>
-        <video id="recordingPlayer" controls class="w-full rounded-2xl bg-black max-h-[420px]" style="transform:scaleX(-1)">
-          Your browser does not support the video tag.
-        </video>
-        <p class="text-xs text-slate-400 mt-2">Video is mirrored to match the natural self-view during recording.</p>
+          Interview Recording
+        </h2>
+        <video id="recordingPlayer" controls class="w-full rounded-xl bg-black max-h-96" style="transform:scaleX(-1)"></video>
+        <p class="text-xs text-slate-400 mt-2">Video is mirrored to match natural self-view.</p>
       </div>
     </div>
 
-    <!-- S3 resource links (shown when available) -->
+    <!-- S3 resource links -->
     <div id="s3Links" class="hidden mb-6 no-print">
       <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
@@ -106,106 +102,116 @@
     <!-- AI Report -->
     <div id="aiReport" class="hidden">
 
-      <!-- Summary + dimension cards + radar -->
+      <!-- Summary + dimension cards + radar — 3-col grid -->
       <div class="grid lg:grid-cols-3 gap-6 mb-6">
 
-        <div class="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
-          <div class="flex items-center gap-3 mb-5">
-            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Summary + 4 dimension cards -->
+        <div class="lg:col-span-2 bg-white p-7 rounded-2xl shadow-sm border border-slate-200">
+          <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
             </svg>
-            <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
-          </div>
-          <p id="summaryText" class="text-slate-600 leading-relaxed mb-7"></p>
+            Executive Summary
+          </h2>
+          <p id="summaryText" class="text-slate-600 leading-relaxed text-sm mb-6"></p>
           <div id="dimensionCards" class="grid sm:grid-cols-2 gap-4"></div>
         </div>
 
-        <!-- Radar chart -->
-        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col items-center">
-          <h3 class="text-lg font-bold text-slate-900 mb-4 self-start">Performance Balance</h3>
-          <canvas id="radarCanvas" style="width:100%;max-width:280px;height:280px;display:block;margin:0 auto;"></canvas>
-          <div id="topDimension" class="mt-5 p-4 bg-indigo-50 rounded-2xl w-full">
+        <!-- Radar chart — fixed pixel canvas to avoid offsetWidth=0 bug -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center">
+          <h3 class="text-base font-bold text-slate-900 mb-4 self-start">Performance Balance</h3>
+          <!-- Fixed 320×320 — labels need room, especially "Knowledge" and "Skillset" -->
+                    <div id="radarWrap" class="w-full" style="max-width:320px;">
+            <canvas id="radarCanvas" style="display:block;width:100%;height:auto;"></canvas>
+          </div>
+          <div id="topDimension" class="mt-4 p-4 bg-indigo-50 rounded-xl w-full">
             <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest block mb-1">Top Dimension</span>
             <p id="topDimLabel" class="font-bold text-slate-900 text-sm"></p>
           </div>
         </div>
       </div>
 
-      <!-- 14-Criterion rubric + Strengths/Improvements -->
-      <div class="grid lg:grid-cols-3 gap-6">
-
-        <div class="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
-          <div class="flex items-center gap-3 mb-6">
-            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <!-- 14-criterion rubric + strengths/improvements -->
+      <div class="grid lg:grid-cols-3 gap-6 mb-6">
+        <div class="lg:col-span-2 bg-white p-7 rounded-2xl shadow-sm border border-slate-200">
+          <h2 class="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
             </svg>
-            <h2 class="text-xl font-bold text-slate-900">14-Criterion Rubric</h2>
-          </div>
+            14-Criterion Rubric
+          </h2>
           <div id="rubricBars" class="space-y-4"></div>
         </div>
 
-        <div class="space-y-6">
-          <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-            <div class="flex items-center gap-2 mb-5 text-green-600">
+        <div class="space-y-5">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center gap-2 mb-4 text-green-600">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
-              <h3 class="text-lg font-bold">Key Strengths</h3>
+              <h3 class="text-base font-bold">Key Strengths</h3>
             </div>
-            <ul id="strengthsList" class="space-y-3"></ul>
+            <ul id="strengthsList" class="space-y-2.5"></ul>
           </div>
-
-          <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-            <div class="flex items-center gap-2 mb-5 text-amber-600">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center gap-2 mb-4 text-amber-600">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
               </svg>
-              <h3 class="text-lg font-bold">Areas to Improve</h3>
+              <h3 class="text-base font-bold">Areas to Improve</h3>
             </div>
-            <ul id="improvementsList" class="space-y-3"></ul>
+            <ul id="improvementsList" class="space-y-2.5"></ul>
           </div>
         </div>
       </div>
-    </div>
+
+      <!-- Transcript -->
+      <div class="mb-6 bg-white p-7 rounded-2xl shadow-sm border border-slate-200">
+        <h2 class="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
+          <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+          </svg>
+          Interview Transcript
+        </h2>
+        <div id="transcriptBody" class="space-y-5"></div>
+        <div id="noTranscript" class="hidden text-slate-400 italic text-sm">No transcript available for this session.</div>
+      </div>
+
+    </div><!-- /aiReport -->
 
     <!-- No AI report yet -->
-    <div id="noAiReport" class="hidden bg-amber-50 p-8 rounded-3xl border border-amber-200 text-center mb-6">
+    <div id="noAiReport" class="hidden bg-amber-50 p-7 rounded-2xl border border-amber-200 text-center mb-6">
       <svg class="w-10 h-10 text-amber-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
-      <h3 class="text-lg font-bold text-amber-900 mb-1">AI Report Still Processing</h3>
+      <h3 class="text-base font-bold text-amber-900 mb-1">AI Report Still Processing</h3>
       <p class="text-amber-700 text-sm">Refresh this page in a moment to see your scores.</p>
     </div>
 
-    <!-- Questions covered -->
-    <div class="mt-6 bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
-      <h2 class="text-xl font-bold text-slate-900 mb-5">Questions Covered</h2>
-      <div id="questionsList" class="space-y-3"></div>
-    </div>
+
   </div><!-- /reportContent -->
 </div>
 
 <script>
-  // ── Load report data ─────────────────────────────────────────────────────
   const stored = JSON.parse(sessionStorage.getItem('interviewSession') || 'null');
 
   async function loadAndRender() {
     let session = stored;
 
     if (!session || !session.report) {
-      const sessionId = window.location.pathname.split('/').pop();
+      const pathParts = window.location.pathname.split('/');
+      const sessionId = pathParts[pathParts.length - 1];
       const email = session?.candidateEmail
         || new URLSearchParams(window.location.search).get('email') || '';
       if (email && sessionId) {
         try {
           const res = await fetch(`/api/session/${sessionId}?email=${encodeURIComponent(email)}`);
           if (res.ok) session = await res.json();
-        } catch (e) { console.warn('Server fetch failed:', e); }
+        } catch(e) { console.warn('Server fetch failed:', e); }
       }
     }
 
@@ -217,7 +223,8 @@
   function renderReport(session) {
     document.getElementById('reportContent').classList.remove('hidden');
     document.getElementById('reportMeta').textContent =
-      `${session.jobTitle || ''} at ${session.companyName || ''} · ${session.createdAt ? new Date(session.createdAt).toLocaleDateString() : ''}`;
+      `${session.jobTitle || ''} at ${session.companyName || ''}` +
+      (session.createdAt ? ` · ${new Date(session.createdAt).toLocaleDateString()}` : '');
 
     // Video
     if (session.videoUrl) {
@@ -225,146 +232,160 @@
       document.getElementById('videoSection').classList.remove('hidden');
     }
 
-    // S3 resource links
+    // S3 links
     const s3Items = [
-      { label: 'Download Transcript (.txt)', url: session.transcriptUrl, icon: '📄' },
-      { label: 'Download Report JSON',       url: session.reportUrl,     icon: '📊' },
-      { label: 'Download Video (.webm)',     url: session.videoUrl,      icon: '🎬' },
+      { label: '📄 Transcript (.txt)', url: session.transcriptUrl },
+      { label: '📊 Report JSON',       url: session.reportUrl },
+      { label: '🎬 Video (.webm)',     url: session.videoUrl },
     ].filter(i => i.url);
-
-    if (s3Items.length > 0) {
-      const linksList = document.getElementById('s3LinksList');
+    if (s3Items.length) {
+      const list = document.getElementById('s3LinksList');
       s3Items.forEach(item => {
         const a = document.createElement('a');
-        a.href = item.url;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
+        a.href = item.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
         a.className = 'inline-flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-all';
-        a.innerHTML = `<span>${item.icon}</span> ${esc(item.label)}
-          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-          </svg>`;
-        linksList.appendChild(a);
+        a.textContent = item.label;
+        list.appendChild(a);
       });
       document.getElementById('s3Links').classList.remove('hidden');
     }
 
+
     // AI report
     if (session.report?.overallDimensions) {
       document.getElementById('aiReport').classList.remove('hidden');
-      renderAiReport(session.report);
+      renderAiReport(session.report, session.transcript || '');
     } else {
       document.getElementById('noAiReport').classList.remove('hidden');
     }
-
-    // Questions list
-    const qList = document.getElementById('questionsList');
-    (session.questions || []).forEach((q, i) => {
-      const div = document.createElement('div');
-      div.className = 'flex gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100';
-      div.innerHTML = `
-        <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 flex-shrink-0 flex items-center justify-center text-xs font-bold">${i+1}</div>
-        <div>
-          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 capitalize">${q.category}</span>
-          <p class="text-slate-700 font-medium mt-0.5 text-sm">${esc(q.text)}</p>
-        </div>`;
-      qList.appendChild(div);
-    });
-
-    // Download PDF button — triggers print dialog with PDF option
-    document.getElementById('downloadPdfBtn').addEventListener('click', () => {
-      window.print();
-    });
   }
 
-  function renderAiReport(report) {
+  function renderAiReport(report, transcriptText) {
+    // ── Overall score banner ──────────────────────────────────────────────
+    const overall = report.overallScore
+      || Math.round(Object.values(report.overallDimensions)
+          .reduce((s, d) => s + (d.score || 0), 0) / 4);
+    document.getElementById('overallScoreNum').textContent = overall;
+    const grade = overall >= 80 ? 'Excellent' : overall >= 65 ? 'Good' : overall >= 50 ? 'Fair' : 'Needs Improvement';
+    document.getElementById('overallScoreLabel').textContent = `${grade} Performance`;
+    document.getElementById('scoreBanner').classList.remove('hidden');
+
+    // ── Summary ────────────────────────────────────────────────────────────
     document.getElementById('summaryText').textContent = report.summary || '';
 
-    // Dimension cards
+    // ── Dimension cards ────────────────────────────────────────────────────
     const dims = report.overallDimensions;
     const dimGrid = document.getElementById('dimensionCards');
     let topScore = -1, topLabel = '';
-    const dimColors = { ability:'bg-blue-600', knowledge:'bg-violet-600', skillset:'bg-indigo-600', attitude:'bg-emerald-600' };
-
+    const dimBarColors = {
+      ability: 'bg-blue-500', knowledge: 'bg-violet-500',
+      skillset: 'bg-indigo-500', attitude: 'bg-emerald-500'
+    };
     Object.entries(dims).forEach(([key, dim]) => {
       const score = dim.score || 0;
       if (score > topScore) { topScore = score; topLabel = dim.label; }
-      const color = dimColors[key] || 'bg-indigo-600';
+      const bar = dimBarColors[key] || 'bg-indigo-500';
       const card = document.createElement('div');
-      card.className = 'p-5 bg-slate-50 rounded-2xl border border-slate-100';
+      card.className = 'p-4 bg-slate-50 rounded-xl border border-slate-100';
       card.innerHTML = `
-        <div class="flex justify-between items-end mb-2">
+        <div class="flex justify-between items-end mb-1.5">
           <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${esc(dim.label)}</span>
-          <span class="text-xl font-bold text-slate-800">${score}<span class="text-sm text-slate-400">/100</span></span>
+          <span class="text-lg font-bold text-slate-800">${score}<span class="text-xs text-slate-400">/100</span></span>
         </div>
-        <div class="w-full bg-slate-200 h-2 rounded-full mb-3">
-          <div class="${color} h-2 rounded-full" style="width:${score}%"></div>
+        <div class="w-full bg-slate-200 h-1.5 rounded-full mb-2">
+          <div class="${bar} h-1.5 rounded-full" style="width:${score}%"></div>
         </div>
         <p class="text-xs text-slate-600 leading-relaxed">${esc(dim.feedback)}</p>`;
       dimGrid.appendChild(card);
     });
     document.getElementById('topDimLabel').textContent = topLabel;
-    drawRadar(document.getElementById('radarCanvas'), dims);
 
-    // 14-criterion rubric bars
+    // ── Radar chart ────────────────────────────────────────────────────────
+    // Use requestAnimationFrame to ensure canvas is painted before drawing
+        requestAnimationFrame(() => {
+      const canvas = document.getElementById('radarCanvas');
+      const wrap = document.getElementById('radarWrap');
+      const size = Math.min(wrap.offsetWidth || 280, 320);
+      canvas.width = size;
+      canvas.height = size;
+      drawRadar(canvas, dims);
+    });
+
+    // ── 14-criterion rubric ────────────────────────────────────────────────
     const rubric = document.getElementById('rubricBars');
     (report.technicalCommunication || []).forEach((tc, i) => {
       const pct = ((tc.score || 0) / 5) * 100;
-      const scoreColor = tc.score >= 4 ? 'bg-green-500' : tc.score === 3 ? 'bg-amber-400' : 'bg-red-400';
+      const cls = tc.score >= 4 ? 'bg-green-500 text-green-600' :
+                  tc.score === 3 ? 'bg-amber-400 text-amber-600' : 'bg-red-400 text-red-500';
+      const [barCls, txtCls] = cls.split(' ');
       const bar = document.createElement('div');
       bar.className = 'flex items-start gap-3';
       bar.innerHTML = `
         <div class="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex-shrink-0 flex items-center justify-center text-[9px] font-bold mt-0.5">${i+1}</div>
-        <div class="flex-1">
+        <div class="flex-1 min-w-0">
           <div class="flex justify-between items-center mb-1">
-            <span class="text-sm font-semibold text-slate-700">${esc(tc.criterion)}</span>
-            <span class="text-sm font-bold ${tc.score >= 4 ? 'text-green-600' : tc.score === 3 ? 'text-amber-600' : 'text-red-500'}">${tc.score}/5</span>
+            <span class="text-sm font-semibold text-slate-700 truncate pr-2">${esc(tc.criterion)}</span>
+            <span class="text-sm font-bold flex-shrink-0 ${txtCls}">${tc.score}/5</span>
           </div>
           <div class="w-full bg-slate-100 h-2 rounded-full mb-1">
-            <div class="${scoreColor} h-2 rounded-full transition-all" style="width:${pct}%"></div>
+            <div class="${barCls} h-2 rounded-full" style="width:${pct}%"></div>
           </div>
-          <p class="text-xs text-slate-500">${esc(tc.comment)}</p>
+          <p class="text-xs text-slate-500 leading-relaxed">${esc(tc.comment)}</p>
         </div>`;
       rubric.appendChild(bar);
     });
 
-    // Strengths
-    const sl = document.getElementById('strengthsList');
+    // ── Strengths ──────────────────────────────────────────────────────────
     (report.strengths || []).forEach(s => {
       const li = document.createElement('li');
-      li.className = 'flex gap-2.5 text-sm text-slate-600 leading-relaxed';
+      li.className = 'flex gap-2.5 text-sm text-slate-600';
       li.innerHTML = `<div class="w-1.5 h-1.5 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></div>${esc(s)}`;
-      sl.appendChild(li);
+      document.getElementById('strengthsList').appendChild(li);
     });
 
-    // Improvements
-    const il = document.getElementById('improvementsList');
+    // ── Improvements ───────────────────────────────────────────────────────
     (report.improvements || []).forEach(s => {
       const li = document.createElement('li');
-      li.className = 'flex gap-2.5 text-sm text-slate-600 leading-relaxed';
+      li.className = 'flex gap-2.5 text-sm text-slate-600';
       li.innerHTML = `<div class="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1.5 flex-shrink-0"></div>${esc(s)}`;
-      il.appendChild(li);
+      document.getElementById('improvementsList').appendChild(li);
     });
+
+    // ── Transcript ─────────────────────────────────────────────────────────
+    const transcriptBody = document.getElementById('transcriptBody');
+    if (transcriptText && transcriptText.trim() && !transcriptText.includes('No spoken answer detected')) {
+      const blocks = transcriptText.split('\n\n---\n\n').filter(b => b.trim());
+      blocks.forEach((block, i) => {
+        const lines = block.split('\nAnswer:');
+        const question = lines[0].replace(/^\[Q\d+[^\]]*\]\s*/, '').trim();
+        const answer = lines[1] ? lines[1].trim() : '(No answer recorded)';
+        const div = document.createElement('div');
+        div.className = 'border border-slate-100 rounded-xl overflow-hidden';
+        div.innerHTML = `
+          <div class="bg-indigo-50 px-4 py-2.5 border-b border-slate-100">
+            <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Q${i+1}</span>
+            <p class="text-sm font-semibold text-slate-800 mt-0.5">${esc(question)}</p>
+          </div>
+          <div class="px-4 py-3 bg-white">
+            <p class="text-sm text-slate-700 leading-relaxed">${esc(answer)}</p>
+          </div>`;
+        transcriptBody.appendChild(div);
+      });
+    } else {
+      document.getElementById('noTranscript').classList.remove('hidden');
+    }
   }
 
-  // ── Radar chart (canvas, no library) ────────────────────────────────────
-  function drawRadar(canvas, dims) {
+  // ── Radar chart ───────────────────────────────────────────────────────────
+ function drawRadar(canvas, dims) {
     const ctx = canvas.getContext('2d');
-    // Use display size for crisp rendering on retina screens
-    const dpr = window.devicePixelRatio || 1;
-    const displayW = canvas.offsetWidth || canvas.width;
-    const displayH = canvas.offsetHeight || canvas.height;
-    canvas.width = displayW * dpr;
-    canvas.height = displayH * dpr;
-    ctx.scale(dpr, dpr);
-    const W = displayW, H = displayH;
-
-    const LABEL_PAD = 32;   // extra space so long labels like "Skillset" never clip
+    const W = canvas.width, H = canvas.height;
     const cx = W / 2, cy = H / 2;
-    const r = Math.min(W, H) / 2 - LABEL_PAD - 10;
     const keys = Object.keys(dims);
     const n = keys.length;
-    const rad = deg => (deg * Math.PI) / 180;
+    const rad = a => (a * Math.PI) / 180;
+    const LABEL_PAD = Math.round(Math.min(W, H) * 0.13);
+    const r = Math.min(W, H) / 2 - LABEL_PAD - Math.round(W * 0.06);
 
     ctx.clearRect(0, 0, W, H);
 
@@ -373,8 +394,8 @@
       ctx.beginPath();
       keys.forEach((_, i) => {
         const a = rad(-90 + (360 / n) * i);
-        const [px, py] = [cx + r * f * Math.cos(a), cy + r * f * Math.sin(a)];
-        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        const x = cx + r * f * Math.cos(a), y = cy + r * f * Math.sin(a);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       });
       ctx.closePath(); ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1; ctx.stroke();
     });
@@ -392,30 +413,47 @@
     keys.forEach((key, i) => {
       const s = (dims[key].score || 0) / 100;
       const a = rad(-90 + (360 / n) * i);
-      const [px, py] = [cx + r * s * Math.cos(a), cy + r * s * Math.sin(a)];
-      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      const x = cx + r * s * Math.cos(a), y = cy + r * s * Math.sin(a);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     });
     ctx.closePath();
-    ctx.fillStyle = 'rgba(79,70,229,0.2)'; ctx.fill();
-    ctx.strokeStyle = '#4f46e5'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = 'rgba(79,70,229,0.18)'; ctx.fill();
+    ctx.strokeStyle = '#4f46e5'; ctx.lineWidth = 2.5; ctx.stroke();
 
-    // Labels — rendered outside the chart ring with enough padding
-    ctx.fillStyle = '#475569'; ctx.font = 'bold 12px system-ui,sans-serif';
+    // Labels
+    ctx.font = 'bold 12px system-ui, sans-serif';
+    ctx.fillStyle = '#1e293b';
     ctx.textBaseline = 'middle';
     keys.forEach((key, i) => {
-      const a = rad(-90 + (360 / n) * i);
-      const lx = cx + (r + LABEL_PAD) * Math.cos(a);
-      const ly = cy + (r + LABEL_PAD) * Math.sin(a);
-      // Align text so it doesn't run off the canvas edges
-      if (Math.abs(Math.cos(a)) < 0.1) {
-        ctx.textAlign = 'center';
-      } else {
-        ctx.textAlign = Math.cos(a) > 0 ? 'left' : 'right';
+      const angle = rad(-90 + (360 / n) * i);
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+
+      const labelR = r + LABEL_PAD;
+      let lx = cx + labelR * cosA;
+      let ly = cy + labelR * sinA;
+
+      if (Math.abs(cosA) < 0.15)  ctx.textAlign = 'center';
+      else if (cosA > 0)          ctx.textAlign = 'left';
+      else                        ctx.textAlign = 'right';
+
+      if (sinA > 0.5)       ly += 6;
+      else if (sinA < -0.5) ly -= 6;
+
+      const PAD = 4;
+      const tw = ctx.measureText(dims[key].label).width;
+      if (ctx.textAlign === 'left')       lx = Math.min(lx, W - tw - PAD);
+      else if (ctx.textAlign === 'right') lx = Math.max(lx, tw + PAD);
+      else {
+        lx = Math.max(lx, tw / 2 + PAD);
+        lx = Math.min(lx, W - tw / 2 - PAD);
       }
+      ly = Math.max(ly, PAD + 6);
+      ly = Math.min(ly, H - PAD - 6);
+
       ctx.fillText(dims[key].label, lx, ly);
     });
   }
-
   function esc(str) {
     return String(str || '').replace(/[&<>"']/g,
       c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

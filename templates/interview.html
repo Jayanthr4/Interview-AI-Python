@@ -422,40 +422,101 @@
     let videoUrl = null;
 
     if (blob.size > 10000) {
+      // ── Helper: attempt a single S3 PUT, returns true on success ────────────
+      async function attemptS3Put(uploadUrl, videoBlob) {
+        const s3Res = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'video/webm' },
+          body: videoBlob,
+        });
+        if (!s3Res.ok) {
+          const errText = await s3Res.text().catch(() => '');
+          console.warn('S3 PUT failed:', s3Res.status, s3Res.statusText, errText);
+        }
+        return s3Res.ok;
+      }
+
+      // ── Helper: show a visible warning banner on screen ─────────────────────
+      function showVideoWarning(msg) {
+        let banner = document.getElementById('videoUploadWarning');
+        if (!banner) {
+          banner = document.createElement('div');
+          banner.id = 'videoUploadWarning';
+          banner.style.cssText = [
+            'position:fixed', 'bottom:1rem', 'left:50%', 'transform:translateX(-50%)',
+            'background:#7f1d1d', 'color:#fecaca', 'padding:0.75rem 1.25rem',
+            'border-radius:0.75rem', 'font-size:0.8rem', 'max-width:90vw',
+            'text-align:center', 'z-index:9999', 'box-shadow:0 4px 20px rgba(0,0,0,0.4)',
+            'border:1px solid #991b1b'
+          ].join(';');
+          document.body.appendChild(banner);
+        }
+        banner.textContent = msg;
+      }
+
       try {
         const urlRes = await fetch('/api/presigned-upload-url', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: session.candidateEmail, sessionId: session.sessionId }),
         });
         const urlData = await urlRes.json();
 
         if (urlRes.status === 503 || urlData.skipped) {
           console.warn('S3 not configured — video upload skipped');
-        } else if (urlRes.ok && urlData.uploadUrl) {
-          console.log('Uploading video to S3...', blob.size, 'bytes');
-          const s3Res = await fetch(urlData.uploadUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'video/webm' },
-            body: blob,
-          });
-          if (s3Res.ok) {
-            videoUrl = urlData.publicUrl;
-            console.log('✅ Video uploaded:', videoUrl);
-          } else {
-            // Log the S3 error response for debugging
-            const errText = await s3Res.text().catch(() => '');
-            console.warn('❌ S3 PUT failed:', s3Res.status, errText);
-            console.warn('Tip: Check your S3 bucket CORS policy. Visit /api/check-s3-cors for diagnosis.');
-          }
+
+        } else if (!urlRes.ok || !urlData.uploadUrl) {
+          const errMsg = urlData.error || ('Pre-signed URL request failed: HTTP ' + urlRes.status);
+          console.warn('Pre-signed URL error:', errMsg);
+          showVideoWarning('⚠️ Video upload skipped — could not get upload URL. Report will still be saved.');
+
         } else {
-          console.warn('Pre-signed URL error:', urlData.error || urlRes.status);
+          console.log('Uploading video to S3 (' + blob.size + ' bytes)...');
+
+          // Attempt 1
+          let uploaded = await attemptS3Put(urlData.uploadUrl, blob);
+
+          // Attempt 2 — fresh pre-signed URL + retry once on failure
+          if (!uploaded) {
+            console.warn('S3 PUT failed on attempt 1 — retrying with fresh URL...');
+            try {
+              const retryRes = await fetch('/api/presigned-upload-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: session.candidateEmail, sessionId: session.sessionId }),
+              });
+              const retryData = await retryRes.json();
+              if (retryRes.ok && retryData.uploadUrl) {
+                uploaded = await attemptS3Put(retryData.uploadUrl, blob);
+                if (uploaded) urlData.publicUrl = retryData.publicUrl;
+              }
+            } catch (retryErr) {
+              console.warn('Retry pre-sign fetch failed:', retryErr);
+            }
+          }
+
+          if (uploaded) {
+            videoUrl = urlData.publicUrl;
+            console.log('✅ Video uploaded to S3:', videoUrl);
+            // Persist videoUrl immediately as safety net in case analysis times out
+            fetch('/api/update-video-url', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: session.candidateEmail, sessionId: session.sessionId, videoUrl }),
+            }).catch(e => console.warn('Early video URL save failed (non-critical):', e));
+          } else {
+            console.warn('❌ Video upload failed after retry. Likely a CORS issue on your S3 bucket.');
+            console.warn('Diagnose: visit /api/check-s3-cors');
+            showVideoWarning('⚠️ Video could not be saved (S3 CORS/permissions issue). Your report is still being generated. Visit /api/check-s3-cors to fix.');
+          }
         }
       } catch (e) {
-        console.warn('Video upload error (continuing to analysis):', e);
+        console.warn('Video upload error (non-fatal, continuing to analysis):', e);
+        showVideoWarning('⚠️ Video upload hit a network error. Report will still be saved.');
       }
     } else {
-      console.log('Blob too small (' + blob.size + ' bytes) — skipping upload');
-    }
+          console.warn('Video blob too small (' + blob.size + ' bytes) — recording may have failed, skipping upload.');
+        }
 
     // ── Step 2 & 3: Send everything to /api/complete-session ─────────────
     // This single call: runs AI, uploads transcript+report to S3, saves all to DynamoDB

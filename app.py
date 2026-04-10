@@ -82,14 +82,24 @@ def api_create_session():
     intro_question = {
         "id": "intro-1",
         "category": "intro",
-        "text": "Tell me about yourself in the context of this role.",
+        "text": "Tell me about yourself in the context of this role. \n Why do you think you would be a good fit?",
         "guidance": (
             "Provide a brief (1-2 minute) overview of your background, "
             "key skills, and why you are a strong fit for this specific position."
         ),
         "suggestedTimeMinutes": 2,
     }
-    all_questions = [intro_question] + ai_questions
+    closing_question = {
+        "id": "closing-1",
+        "category": "closing",
+        "text": "Do you have any questions for the interviewer?",
+        "guidance": (
+            "This is your opportunity to ask thoughtful questions about the role, team, "
+            "company culture, or next steps. Prepare 2-3 genuine questions in advance."
+        ),
+        "suggestedTimeMinutes": 3,
+    }
+    all_questions = [intro_question] + ai_questions + [closing_question]
 
     try:
         result = create_interview_session({
@@ -321,6 +331,49 @@ def api_update_video_url():
     return jsonify({"success": True})
 
 
+# ── Report lookup (admin — bypasses 24h OTP expiry) ─────────────────────────
+
+@app.route("/report-lookup")
+def report_lookup():
+    return render_template("report_lookup.html")
+
+
+@app.route("/api/admin/report-lookup", methods=["POST"])
+def api_admin_report_lookup():
+    """
+    Admin endpoint to fetch any session by email + OTP, bypassing the 24h expiry.
+    Used by /report-lookup page so admins can access reports after OTP expires.
+    """
+    data = request.get_json()
+    email = data.get("email", "").strip()
+    otp   = data.get("otp", "").strip()
+
+    if not email or len(otp) != 6:
+        return jsonify({"error": "Valid email and 6-digit OTP are required."}), 400
+
+    try:
+        # Use get_session_by_email_otp but ignore expiry by calling the raw lookup
+        from services.dynamodb_service import _get_table, _normalize
+        import json as _json
+        from boto3.dynamodb.conditions import Key as _Key
+
+        table = _get_table()
+        response = table.query(
+            KeyConditionExpression=_Key("PK").eq(f"USER#{email}")
+            & _Key("SK").begins_with("INTERVIEW#")
+        )
+        items = response.get("Items", [])
+        item = next((i for i in items if i.get("otp") == otp), None)
+        if not item:
+            return jsonify({"error": "No session found for this email and OTP combination."}), 404
+
+        session = _normalize(item, check_expiry=False)  # bypass expiry
+        return jsonify(session)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Admin ─────────────────────────────────────────────────────────────────────
 
 @app.route("/api/admin/sessions", methods=["GET"])
@@ -361,4 +414,4 @@ def api_check_s3_cors():
 
 if __name__ == "__main__":
     debug = os.getenv("FLASK_DEBUG", "false").lower() == "true"
-    app.run(debug=debug, host="0.0.0.0", port=int(os.getenv("PORT", 5020)))
+    app.run(debug=debug, host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
